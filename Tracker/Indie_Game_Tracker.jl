@@ -1,55 +1,19 @@
-using HTTP, Gumbo, Cascadia
+using HTTP, JSON3
 
-function get_text(node)
-    node === nothing && return ""
-    isa(node, Bool) && return ""
-    
-    if node.nodeType == Gumbo.TEXT_NODE
-        return strip(node.text)
-    elseif node.nodeType == Gumbo.ELEMENT_NODE
-        return join(filter(!isempty, get_text.(node.children)), " ") |> strip
-    else
-        return ""
-    end
-end
+# API endpoint for top cryptocurrencies (by market cap)
+url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=5&page=1"
 
-url = "https://itch.io/games/newest"
+# Make the request
+response = HTTP.get(url)
 
-try
-    response = HTTP.get(url)
-    html = parsehtml(String(response.body))
-    games = []
+# Parse the JSON response
+data = JSON3.read(String(response.body))
 
-    for card in eachmatch(Selector("div.game_cell_data"), html.root)
-        # Safe title extraction
-        title = "N/A"
-        link = "N/A"
-        title_node = match(Selector("div.game_title"), card)
-        if title_node !== nothing && isa(title_node, Gumbo.HTMLElement)
-            title = get_text(title_node)
-            if haskey(title_node.attributes, "href")
-                link = "https://itch.io$(title_node.attributes["href"])"
-            end
-        end
-
-        # Safe creator extraction
-        creator = "Unknown"
-        creator_node = match(Selector("div.game_author"), card)
-        if creator_node !== nothing
-            creator = get_text(creator_node)
-        end
-
-        push!(games, (; title, creator, link))
-    end
-
-    # Print first 5 games
-    foreach(games[1:min(5, end)]) do game
-        println("🎮 ", game.title)
-        println("👤 ", game.creator)
-        println("🔗 ", game.link)
-        println("─"^30)
-    end
-
-catch e
-    println("Error: ", e)
+# Display results
+for coin in data
+    println("🪙 Name: ", coin["name"])
+    println("💲 Price: \$", coin["current_price"])
+    println("📈 Market Cap: \$", coin["market_cap"])
+    println("🔗 Link: https://www.coingecko.com/en/coins/", coin["id"])
+    println("────────────────────────────")
 end
