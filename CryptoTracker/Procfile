@@ -1,0 +1,1 @@
+web: julia -e "using Genie; Genie.loadapp(); Genie.up(8000, host=\"0.0.0.0\")"
